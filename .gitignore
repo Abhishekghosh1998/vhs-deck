@@ -1,0 +1,18 @@
+# build output
+native/target/
+target/
+# local test media and renders
+*.mp4
+*.mkv
+*.webm
+*.avi
+*.mov
+*.png
+# editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# release packaging
+dist/
