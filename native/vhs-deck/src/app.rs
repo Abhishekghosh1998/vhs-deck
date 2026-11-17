@@ -112,7 +112,7 @@ impl App {
         let cond = Cond::Good;
         let mut app = App {
             effect: process::preset(cond), descriptors: NtscEffect::setting_descriptors().into_vec(), cond,
-            knobs: Knobs::preset(cond), track: 0.0, auto: false, roll_on: true, bypass: false, search: Default::default(), mode: Mode::None,
+            knobs: Knobs::preset(cond), track: 0.0, auto: true, roll_on: true, bypass: false, search: Default::default(), mode: Mode::None,
             volume: 0.8, muted: false, sim: Sim::new(now.elapsed().as_nanos() as u64 ^ 0x5eed), view: Default::default(),
             tape: Tape::None, audio, started: now, last: now, wall_clock: 0.0,
             proc: Processor::new(), src_frame: None, src_dirty: false, last_submit: now, frame_num: 0, tex: None,
@@ -599,6 +599,16 @@ impl App {
             ui.separator();
             let mode_txt = match self.mode { Mode::None => "NO MEDIA", Mode::Stop => "STOP", Mode::Play => "PLAY", Mode::Pause => "PAUSE", Mode::Ff => "FF", Mode::Rew => "REW" };
             ui.label(egui::RichText::new(mode_txt).small().color(Color32::GRAY));
+            ui.separator();
+            ui.label(egui::RichText::new("Tracking").small().color(Color32::GRAY));
+            if ui.small_button("−").clicked() { self.adjust_track(-0.05); }
+            ui.spacing_mut().slider_width = 130.0;
+            let mut t = self.track;
+            let r = ui.add(egui::Slider::new(&mut t, -1.0..=1.0).show_value(true).fixed_decimals(2)).on_hover_text("Tracking ([ and ])");
+            if r.changed() && (r.dragged() || r.has_focus() || r.clicked()) { self.track = t; self.auto = false; }
+            if ui.small_button("+").clicked() { self.adjust_track(0.05); }
+            ui.label(egui::RichText::new("Auto").small().color(Color32::GRAY));
+            toggle_switch(ui, &mut self.auto).on_hover_text("Auto tracking: follow the tape's drifting best tracking point");
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.spacing_mut().slider_width = 110.0;
                 let mut v = self.volume;
@@ -689,18 +699,26 @@ impl App {
             if ui.small_button(" − ").clicked() { self.adjust_track(-0.05); }
             ui.spacing_mut().slider_width = (ui.available_width() - 120.0).max(60.0);
             let mut t = self.track;
-            if ui.add(egui::Slider::new(&mut t, -1.0..=1.0).show_value(true).fixed_decimals(2)).changed() { self.track = t; self.auto = false; }
+            let r = ui.add(egui::Slider::new(&mut t, -1.0..=1.0).show_value(true).fixed_decimals(2));
+            if r.changed() && (r.dragged() || r.has_focus() || r.clicked()) { self.track = t; self.auto = false; }
             if ui.small_button(" + ").clicked() { self.adjust_track(0.05); }
         });
         ui.horizontal(|ui| {
-            ui.checkbox(&mut self.auto, "Auto tracking");
+            toggle_switch(ui, &mut self.auto).on_hover_text("Auto tracking: follow the tape's drifting best tracking point");
+            ui.label("Auto tracking");
+            ui.label(egui::RichText::new(if self.auto { "on" } else { "off" }).small().color(Color32::GRAY));
+        });
+        ui.add_space(2.0);
+        ui.horizontal(|ui| {
             let e = self.sim.track_error();
+            ui.label(egui::RichText::new("Tracking error").small());
+            ui.label(egui::RichText::new(format!("{:.2}", e)).small().monospace().color(Color32::GRAY));
             let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width().max(40.0), 10.0), Sense::hover());
             ui.painter().rect_filled(rect, 2.0, Color32::from_gray(40));
             let w = rect.width() * e.clamp(0.0, 1.0);
             let col = if e < 0.2 { Color32::from_rgb(90, 200, 120) } else if e < 0.5 { Color32::from_rgb(230, 190, 60) } else { Color32::from_rgb(230, 80, 60) };
             ui.painter().rect_filled(Rect::from_min_size(rect.min, Vec2::new(w, rect.height())), 2.0, col);
-        }).response.on_hover_text("Tracking error. The correct setting drifts with the tape, so retune when the picture breaks up.");
+        }).response.on_hover_text("Distance between the tracking slider and the tape's best tracking point. Keep it near zero for a clean picture; auto tracking does that for you.");
 
         ui.label(egui::RichText::new("How the bars look (height, wave, snow, noise, position) is set under All ntsc-rs settings → Tracking noise.").small().color(Color32::GRAY));
 
@@ -974,4 +992,23 @@ fn setting_ui(ui: &mut Ui, d: &SettingDescriptor<NtscEffect>, e: &mut NtscEffect
         _ => {}
     }
     if new != cur { let _ = (d.id.set)(e, new); }
+}
+
+/// A small on/off switch (pill with a sliding knob).
+fn toggle_switch(ui: &mut Ui, on: &mut bool) -> egui::Response {
+    let size = Vec2::new(34.0, 18.0);
+    let (rect, mut resp) = ui.allocate_exact_size(size, Sense::click());
+    if resp.clicked() { *on = !*on; resp.mark_changed(); }
+    let t = ui.ctx().animate_bool(resp.id, *on);
+    let off = Color32::from_gray(70);
+    let onc = Color32::from_rgb(60, 150, 235);
+    let bg = Color32::from_rgb(
+        (off.r() as f32 + (onc.r() as f32 - off.r() as f32) * t) as u8,
+        (off.g() as f32 + (onc.g() as f32 - off.g() as f32) * t) as u8,
+        (off.b() as f32 + (onc.b() as f32 - off.b() as f32) * t) as u8);
+    let r = rect.height() / 2.0;
+    ui.painter().rect_filled(rect, r, bg);
+    let cx = rect.left() + r + t * (rect.width() - 2.0 * r);
+    ui.painter().circle_filled(egui::pos2(cx, rect.center().y), r - 2.5, Color32::WHITE);
+    resp
 }
