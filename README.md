@@ -37,6 +37,8 @@ Frames from *Sintel* (© Blender Foundation | [durian.blender.org](https://duria
 
    Or run `./vhs-deck` and use **Media → Open File**, or drag a file onto the window.
 
+To add it to your application menu with its icon, run `./install.sh` from the unpacked folder (installs under `~/.local`, no root needed).
+
 Requirements: a glibc 2.35+ distribution (Ubuntu 22.04+, Debian 12+, Fedora 36+ or newer), an X11 or Wayland desktop with OpenGL, and a working sound device (ALSA, PulseAudio or PipeWire).
 
 Optional, for web links: `yt-dlp` (see [Web videos](#web-videos-and-responsibility)).
@@ -80,7 +82,13 @@ The graphics and windowing libraries (X11, Wayland, OpenGL) are loaded at run ti
 
 This writes `dist/vhs-deck-<version>-linux-x86_64.tar.gz` and a `.sha256` file. Pushing a tag such as `v0.1.0` runs `.github/workflows/release.yml`, which builds the tarball on Ubuntu 22.04 and attaches it to a GitHub release. Build release binaries on the oldest distro you want to support, since the binary needs at least the glibc it was built against.
 
-### 5. Tests
+### 5. Install into the application menu
+
+    scripts/install.sh
+
+This copies the binary to `~/.local/bin`, the icons to `~/.local/share/icons` and a `vhs-deck.desktop` launcher to `~/.local/share/applications`. Set `PREFIX=/usr/local` (with sudo) for a system-wide install.
+
+### 6. Tests
 
     cd native && cargo test --release -p vhs-core
 
@@ -91,7 +99,7 @@ Web videos: **Media → Open URL…**, Ctrl+V with a link copied, or pass the li
 * Menus: Media, Playback, Audio, Video (Aspect Ratio, Scale/Zoom, Processing resolution, Scaling filter), VCR, View.
 * Aspect ratio: Default, 16:9, 4:3, 1:1, 16:10, 2.21:1, 2.35:1, 2.39:1, 5:4.
 * Scale/Zoom: Fit, Fill (crop), Stretch, 1:4, 1:2, 1:1, 2:1.
-* Keys: Space play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, F fullscreen, Ctrl+O open, `[` `]` tracking.
+* Keys: Space play/pause, ←/→ ±5 s, ↑/↓ volume, M mute, F fullscreen, Ctrl+O open, `[` `]` tracking, `-` / `=` playback speed.
 
 Side panel, tab **VCR**:
 

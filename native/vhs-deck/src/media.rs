@@ -86,6 +86,15 @@ pub fn probe(path: &Path, proc_h: u32) -> Result<MediaInfo, String> {
     Ok(MediaInfo { path: path.to_owned(), title, duration, src_w: sw, src_h: sh, w, h, fps, has_audio, audio_url: None })
 }
 
+/// ffmpeg `atempo` filter chain (each stage only accepts 0.5..2.0) for a pitch-preserving speed change.
+fn atempo_chain(mut rate: f64) -> String {
+    let mut parts = Vec::new();
+    while rate > 2.0 { parts.push("atempo=2.0".to_string()); rate /= 2.0; }
+    while rate < 0.5 { parts.push("atempo=0.5".to_string()); rate /= 0.5; }
+    parts.push(format!("atempo={rate:.4}"));
+    parts.join(",")
+}
+
 fn ffmpeg_video(info: &MediaInfo, pos: f64, frames: Option<u32>) -> Command {
     let mut c = Command::new("ffmpeg");
     c.args(["-v", "error", "-nostdin"]);
@@ -106,7 +115,7 @@ pub struct DecodeSession {
 }
 
 impl DecodeSession {
-    pub fn start(info: &MediaInfo, pos: f64, ring: Option<(Arc<Mutex<Ring>>, u64, u32)>) -> Result<Self, String> {
+    pub fn start(info: &MediaInfo, pos: f64, ring: Option<(Arc<Mutex<Ring>>, u64, u32)>, rate: f64) -> Result<Self, String> {
         let stop = Arc::new(AtomicBool::new(false));
         let children = Arc::new(Mutex::new(Vec::new()));
         let (tx, rx) = sync_channel::<VFrame>(6);
@@ -133,6 +142,7 @@ impl DecodeSession {
             let mut ac = Command::new("ffmpeg");
             ac.args(["-v", "error", "-nostdin"]);
             input_args(&mut ac, &info.audio_url.clone().unwrap_or_else(|| info.path.to_string_lossy().into_owned()), pos);
+            if (rate - 1.0).abs() > 1e-3 { ac.args(["-af", &atempo_chain(rate)]); }
             ac
                 .args(["-vn", "-f", "f32le", "-ac", "2", "-ar", &sr.to_string(), "-"]);
             let mut achild = ac.stdout(Stdio::piped()).stderr(Stdio::null()).stdin(Stdio::null()).spawn().map_err(|e| e.to_string())?;
@@ -244,4 +254,15 @@ pub fn resolve_url(url: &str, max_h: u32) -> Result<MediaInfo, String> {
         has_audio: audio.is_some() || has(video, "acodec"),
         audio_url: audio.and_then(|a| a["url"].as_str()).map(|s| s.to_string()),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::atempo_chain;
+    #[test]
+    fn atempo_stages_stay_in_range() {
+        assert_eq!(atempo_chain(1.5), "atempo=1.5000");
+        assert_eq!(atempo_chain(4.0), "atempo=2.0,atempo=2.0000");
+        assert_eq!(atempo_chain(0.25), "atempo=0.5,atempo=0.5000");
+    }
 }

@@ -78,7 +78,7 @@ fn probe_test(path: &str) -> Result<(), String> {
     println!("probe: {} {}x{} (decoding at {}x{}) @ {:.3} fps, {:.2}s, audio={}", info.title, info.src_w, info.src_h, info.w, info.h, info.fps, info.duration, info.has_audio);
     for (label, pos) in [("start", 0.0), ("seek", (info.duration * 0.5).max(0.0))] {
         let ring = Arc::new(Mutex::new(audio_out::Ring { gen: 1, q: Default::default() }));
-        let dec = media::DecodeSession::start(&info, pos, Some((ring.clone(), 1, 48000)))?;
+        let dec = media::DecodeSession::start(&info, pos, Some((ring.clone(), 1, 48000)), 1.0)?;
         let t0 = Instant::now();
         let (mut frames, mut first, mut last) = (0u32, f64::NAN, 0.0f64);
         while t0.elapsed() < Duration::from_millis(1500) && frames < 30 {

@@ -76,6 +76,8 @@ pub struct App {
     zoom: Zoom,
     smooth: bool,
     proc_h: u32,
+    rate: f32,
+    rate_ui: Option<f32>,
     scale: [f32; 2],
     scale_link: bool,
     proc_edit: u32,
@@ -117,7 +119,7 @@ impl App {
             tape: Tape::None, audio, started: now, last: now, wall_clock: 0.0,
             proc: Processor::new(), src_frame: None, src_dirty: false, last_submit: now, frame_num: 0, tex: None,
             tex_size: (4, 3), src_dims: (640, 480),
-            aspect: 0, zoom: Zoom::Fit, smooth: true, proc_h: 480, scale: [1.0, 1.0], scale_link: true, proc_edit: 480, show_panel: true, tab: Tab::Vcr, fullscreen: false,
+            aspect: 0, zoom: Zoom::Fit, smooth: true, proc_h: 480, rate: 1.0, rate_ui: None, scale: [1.0, 1.0], scale_link: true, proc_edit: 480, show_panel: true, tab: Tab::Vcr, fullscreen: false,
             ui_until: 0.0, last_mouse: Pos2::ZERO, osd_msg: None, scrub: None,
             search_pos: 0.0, search_acc: 0.0, search_cache: Vec::new(), search_req: None, search_lo: 0.0, search_hi: 0.0, search_shown: -1.0, picker: None, url_rx: None,
             demo_step: -1, demo_buf: Vec::new(), ended: false,
@@ -202,12 +204,23 @@ impl App {
         if let Tape::File(ft) = &mut self.tape {
             ft.dec = None; // kills the old ffmpeg processes first
             ft.pending = None;
-            match DecodeSession::start(&ft.info, pos, ring) {
+            match DecodeSession::start(&ft.info, pos, ring, self.rate as f64) {
                 Ok(d) => ft.dec = Some(d),
                 Err(e) => err = Some(e),
             }
         }
         if let Some(e) = err { self.msg(&format!("Decode error: {e}"), 4.0); }
+    }
+
+    /// Playback speed (0.25x to 4x, pitch preserved), like VLC's rate control.
+    fn set_rate(&mut self, r: f32) {
+        let r = r.clamp(0.25, 4.0);
+        if (r - self.rate).abs() < 1e-3 { return; }
+        let pos = self.pos();
+        self.rate = r;
+        if let Some(a) = &self.audio { a.set_rate(r as f64); }
+        if self.has_tape() && !matches!(self.mode, Mode::Ff | Mode::Rew | Mode::Stop) { self.seek(pos); }
+        self.msg(&format!("Speed {:.2}x", r), 1.5);
     }
 
     fn leave_search(&mut self) {
@@ -313,7 +326,7 @@ impl App {
 
     // ---------------------------------------------------------------- per-frame work
     fn advance(&mut self, dt: f32) {
-        if self.audio.is_none() && self.mode == Mode::Play { self.wall_clock += dt as f64; }
+        if self.audio.is_none() && self.mode == Mode::Play { self.wall_clock += dt as f64 * self.rate as f64; }
         let secs = self.secs();
         if let Some((_, until)) = &self.osd_msg { if secs > *until { self.osd_msg = None; } }
         if let Some((kind, rx)) = &self.picker {
@@ -490,6 +503,9 @@ impl App {
             if media::is_url(&t) { self.open_url(&t); }
         }
         use egui::Key;
+        let (faster, slower) = ctx.input(|i| (i.key_pressed(Key::Equals) || i.key_pressed(Key::Plus), i.key_pressed(Key::Minus)));
+        if faster { let r = next_speed(self.rate, true); self.set_rate(r); }
+        if slower { let r = next_speed(self.rate, false); self.set_rate(r); }
         let (space, left, right, up, down, m, f, esc, ctrl_o, lb, rb) = ctx.input(|i| (
             i.key_pressed(Key::Space), i.key_pressed(Key::ArrowLeft), i.key_pressed(Key::ArrowRight), i.key_pressed(Key::ArrowUp),
             i.key_pressed(Key::ArrowDown), i.key_pressed(Key::M), i.key_pressed(Key::F), i.key_pressed(Key::Escape),
@@ -527,6 +543,15 @@ impl App {
             ui.menu_button("Playback", |ui| {
                 if ui.button("Play / Pause     Space").clicked() { self.toggle_play(); ui.close_menu(); }
                 if ui.button("Stop").clicked() { self.stop(); ui.close_menu(); }
+                ui.separator();
+                ui.menu_button("Speed", |ui| {
+                    for r in SPEEDS {
+                        if ui.radio((self.rate - r).abs() < 1e-3, format!("{r}x")).clicked() { self.set_rate(r); ui.close_menu(); }
+                    }
+                });
+                if ui.button("Faster     =").clicked() { let r = next_speed(self.rate, true); self.set_rate(r); }
+                if ui.button("Slower     -").clicked() { let r = next_speed(self.rate, false); self.set_rate(r); }
+                if ui.button("Normal speed").clicked() { self.set_rate(1.0); ui.close_menu(); }
                 ui.separator();
                 if ui.button("Jump back 5 s     ←").clicked() { self.skip(-5.0); ui.close_menu(); }
                 if ui.button("Jump forward 5 s  →").clicked() { self.skip(5.0); ui.close_menu(); }
@@ -599,6 +624,16 @@ impl App {
             ui.separator();
             let mode_txt = match self.mode { Mode::None => "NO MEDIA", Mode::Stop => "STOP", Mode::Play => "PLAY", Mode::Pause => "PAUSE", Mode::Ff => "FF", Mode::Rew => "REW" };
             ui.label(egui::RichText::new(mode_txt).small().color(Color32::GRAY));
+            ui.separator();
+            ui.label(egui::RichText::new("Speed").small().color(Color32::GRAY));
+            let mut r = self.rate_ui.unwrap_or(self.rate);
+            ui.spacing_mut().slider_width = 90.0;
+            let sr = ui.add(egui::Slider::new(&mut r, 0.25..=4.0).logarithmic(true).step_by(0.05).fixed_decimals(2).suffix("x"))
+                .on_hover_text("Playback speed (- and =). Applied when you let go.");
+            if sr.dragged() { self.rate_ui = Some(r); }
+            else if sr.changed() { self.rate_ui = None; self.set_rate(r); }           // typed value or click
+            if sr.drag_stopped() { self.rate_ui = None; self.set_rate(r); }
+            if ui.small_button("1x").on_hover_text("Normal speed").clicked() { self.rate_ui = None; self.set_rate(1.0); }
             ui.separator();
             ui.label(egui::RichText::new("Tracking").small().color(Color32::GRAY));
             if ui.small_button("−").clicked() { self.adjust_track(-0.05); }
@@ -1011,4 +1046,11 @@ fn toggle_switch(ui: &mut Ui, on: &mut bool) -> egui::Response {
     let cx = rect.left() + r + t * (rect.width() - 2.0 * r);
     ui.painter().circle_filled(egui::pos2(cx, rect.center().y), r - 2.5, Color32::WHITE);
     resp
+}
+
+const SPEEDS: [f32; 9] = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
+
+fn next_speed(cur: f32, up: bool) -> f32 {
+    if up { SPEEDS.iter().copied().find(|s| *s > cur + 1e-3).unwrap_or(4.0) }
+    else { SPEEDS.iter().rev().copied().find(|s| *s < cur - 1e-3).unwrap_or(0.25) }
 }

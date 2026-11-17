@@ -22,6 +22,8 @@ pub struct AState {
     pub has_file_audio: bool,
     pub clock_base: f64,
     pub frames: u64,
+    /// Playback speed of file media (audio is time-stretched by the decoder, so one output sample = `rate` seconds of tape).
+    pub rate: f64,
     pub params: AudioParams,
     pub dropouts: Vec<f32>,
     tape: TapeAudio,
@@ -43,7 +45,7 @@ impl AudioOut {
         let sr = cfg.sample_rate().0;
         let ring = Arc::new(Mutex::new(Ring { gen: 0, q: VecDeque::new() }));
         let state = Arc::new(Mutex::new(AState {
-            source: Source::None, playing: false, has_file_audio: false, clock_base: 0.0, frames: 0,
+            source: Source::None, playing: false, has_file_audio: false, clock_base: 0.0, frames: 0, rate: 1.0,
             params: AudioParams { knobs: Knobs::preset(vhs_core::params::Cond::Good), speed: Speed::Sp, track_err: 0.0, playing: false, volume: 0.8 },
             dropouts: Vec::new(),
             tape: TapeAudio::new(sr as f32),
@@ -63,7 +65,17 @@ impl AudioOut {
     /// Tape position in seconds according to samples played.
     pub fn clock(&self) -> f64 {
         let s = self.state.lock().unwrap();
-        s.clock_base + s.frames as f64 / self.sample_rate as f64
+        let rate = if s.source == Source::File { s.rate } else { 1.0 };
+        s.clock_base + s.frames as f64 * rate / self.sample_rate as f64
+    }
+
+    /// Change playback speed, keeping the current tape position. The decoder must be restarted afterwards.
+    pub fn set_rate(&self, rate: f64) {
+        let mut s = self.state.lock().unwrap();
+        let cur = s.clock_base + s.frames as f64 * if s.source == Source::File { s.rate } else { 1.0 } / self.sample_rate as f64;
+        s.clock_base = cur;
+        s.frames = 0;
+        s.rate = rate;
     }
 
     /// Jump to `pos`; returns the new ring generation (decoders must tag their samples with it).

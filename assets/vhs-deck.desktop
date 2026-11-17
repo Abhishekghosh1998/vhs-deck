@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=VHS Deck
+GenericName=Video Player
+Comment=Play any video like a worn VHS tape
+Exec=vhs-deck %f
+Icon=vhs-deck
+Terminal=false
+Categories=AudioVideo;Video;Player;
+MimeType=video/mp4;video/x-matroska;video/webm;video/x-msvideo;video/quicktime;
+StartupWMClass=vhs-deck
