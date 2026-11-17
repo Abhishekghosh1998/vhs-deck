@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<rect width="256" height="256" rx="48" fill="#1b1d2b"/>
+<!-- VCR + tape, drawn in a 256x256 box -->
+<rect x="30" y="196" width="22" height="8" rx="2" fill="#0b0a10"/><rect x="204" y="196" width="22" height="8" rx="2" fill="#0b0a10"/>
+<polygon points="30,112 46,92 210,92 226,112" fill="#6b6874" stroke="#0b0a10" stroke-width="3" stroke-linejoin="round"/>
+<g stroke="#57545f" stroke-width="2"><line x1="58" y1="97" x2="198" y2="97"/><line x1="52" y1="103" x2="204" y2="103"/></g>
+<rect x="18" y="112" width="220" height="86" rx="6" fill="#4d4a55" stroke="#0b0a10" stroke-width="3"/>
+<rect x="18" y="112" width="220" height="3" fill="#7a7784"/>
+<rect x="26" y="120" width="204" height="34" rx="3" fill="#0d0c12"/>
+<rect x="32" y="130" width="22" height="13" rx="2" fill="none" stroke="#e8e6dc" stroke-width="2"/>
+<text x="43" y="140" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="9" text-anchor="middle" fill="#e8e6dc">VHS</text>
+<rect x="62" y="124" width="104" height="26" rx="2" fill="#07060a" stroke="#2a2833" stroke-width="1.5"/>
+<rect x="84" y="134" width="60" height="3" fill="#7d7a88"/><rect x="92" y="140" width="44" height="2" fill="#5c5967"/>
+<rect x="172" y="127" width="9" height="5" rx="1" fill="#d8d6cc"/><rect x="172" y="140" width="9" height="5" rx="1" fill="#d8d6cc"/>
+<rect x="186" y="124" width="38" height="26" rx="2" fill="#2a0a0c"/>
+<rect x="30" y="162" width="24" height="26" rx="2" fill="#3a3841" stroke="#0b0a10" stroke-width="2"/>
+<rect x="60" y="162" width="46" height="26" rx="2" fill="#3a3841" stroke="#0b0a10" stroke-width="2"/>
+<rect x="110" y="162" width="52" height="26" rx="2" fill="#3a3841" stroke="#0b0a10" stroke-width="2"/>
+<rect x="166" y="162" width="24" height="26" rx="2" fill="#3a3841" stroke="#0b0a10" stroke-width="2"/>
+<rect x="196" y="162" width="28" height="26" rx="2" fill="#3a3841" stroke="#0b0a10" stroke-width="2"/>
+<circle cx="42" cy="175" r="5" fill="none" stroke="#e8e6dc" stroke-width="2"/>
+<polygon points="68,169 68,181 78,175" fill="#e8e6dc"/><polygon points="88,169 88,181 98,175" fill="#e8e6dc" opacity=".0"/>
+<polygon points="126,168 126,182 140,175" fill="#4dff7e"/>
+<circle cx="178" cy="175" r="5" fill="#ff3b3b"/>
+<rect x="206" y="173" width="8" height="4" fill="#e8e6dc"/><polygon points="214,170 220,175 214,180" fill="#e8e6dc"/>
+<polygon points="66.8,47.3 181.9,33.2 189.5,94.7 74.3,108.8" fill="#16151c" stroke="#05050a" stroke-width="3" stroke-linejoin="round"/><polygon points="75.4,52.3 174.7,40.1 176.4,54.0 77.2,66.2" fill="#26252f"/><circle cx="102.9" cy="79.1" r="13" fill="#e9e8e2"/><circle cx="102.9" cy="79.1" r="5.5" fill="#16151c"/><circle cx="154.5" cy="72.8" r="13" fill="#e9e8e2"/><circle cx="154.5" cy="72.8" r="5.5" fill="#16151c"/><polygon points="92.7,94.5 168.2,85.2 169.1,93.2 93.7,102.4" fill="#26252f"/>
+</svg>

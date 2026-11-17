@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/banner.png" alt="VHS Deck" width="900"></p>
+
 # VHS Deck
 
 A VLC-style video player that makes any video look and sound like it is playing from a worn VHS tape.

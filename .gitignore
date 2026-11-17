@@ -17,3 +17,4 @@ target/
 # release packaging
 dist/
 !docs/screenshots/*.png
+!assets/*.png

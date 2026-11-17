@@ -103,6 +103,21 @@ fn probe_test(path: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Window / taskbar icon, decoded from the bundled PNG.
+fn app_icon() -> egui::IconData {
+    let bytes = include_bytes!("../../../assets/icon-128.png");
+    let mut reader = match png::Decoder::new(&bytes[..]).read_info() { Ok(r) => r, Err(_) => return Default::default() };
+    let mut buf = vec![0; reader.output_buffer_size()];
+    let info = match reader.next_frame(&mut buf) { Ok(i) => i, Err(_) => return Default::default() };
+    buf.truncate(info.buffer_size());
+    let rgba = match info.color_type {
+        png::ColorType::Rgba => buf,
+        png::ColorType::Rgb => buf.chunks_exact(3).flat_map(|p| [p[0], p[1], p[2], 255]).collect(),
+        _ => return Default::default(),
+    };
+    egui::IconData { rgba, width: info.width, height: info.height }
+}
+
 fn main() -> eframe::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--render-test") {
@@ -117,6 +132,8 @@ fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("VHS Deck")
+            .with_app_id("vhs-deck")
+            .with_icon(app_icon())
             .with_inner_size([1280.0, 780.0])
             .with_min_inner_size([760.0, 480.0]),
         ..Default::default()
