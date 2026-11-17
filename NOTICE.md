@@ -22,3 +22,7 @@ Everything else in that folder is unchanged. The bundled `Cargo.toml` is trimmed
 ## Rust dependencies
 
 eframe/egui, cpal, png and serde_json, each under its own licence (see their crates).
+
+## Screenshot credits
+
+The images in `docs/screenshots/` are frames from *Sintel* (c) Blender Foundation, https://durian.blender.org, licensed CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). They have been modified by applying the VHS effect.

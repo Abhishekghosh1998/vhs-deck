@@ -86,13 +86,15 @@ pub fn probe(path: &Path, proc_h: u32) -> Result<MediaInfo, String> {
     Ok(MediaInfo { path: path.to_owned(), title, duration, src_w: sw, src_h: sh, w, h, fps, has_audio, audio_url: None })
 }
 
-fn ffmpeg_video(info: &MediaInfo, pos: f64) -> Command {
+fn ffmpeg_video(info: &MediaInfo, pos: f64, frames: Option<u32>) -> Command {
     let mut c = Command::new("ffmpeg");
     c.args(["-v", "error", "-nostdin"]);
     input_args(&mut c, &info.path.to_string_lossy(), pos);
     c
         .args(["-an", "-vf", &format!("fps={:.5},scale={}:{}:flags=lanczos,format=rgba", info.fps, info.w, info.h)])
-        .args(["-pix_fmt", "rgba", "-f", "rawvideo", "-"]);
+        .args(["-pix_fmt", "rgba"]);
+    if let Some(n) = frames { c.args(["-frames:v", &n.to_string()]); }
+    c.args(["-f", "rawvideo", "-"]);
     c
 }
 
@@ -109,7 +111,7 @@ impl DecodeSession {
         let children = Arc::new(Mutex::new(Vec::new()));
         let (tx, rx) = sync_channel::<VFrame>(6);
 
-        let mut vc = ffmpeg_video(info, pos);
+        let mut vc = ffmpeg_video(info, pos, None);
         let mut vchild = vc.stdout(Stdio::piped()).stderr(Stdio::null()).stdin(Stdio::null()).spawn()
             .map_err(|e| format!("ffmpeg not found: {e}"))?;
         let mut vout = vchild.stdout.take().unwrap();
@@ -175,9 +177,7 @@ impl Drop for DecodeSession {
 
 /// Decode a single still frame (used for the picture while searching FF/REW).
 pub fn grab_frame(info: &MediaInfo, pos: f64) -> Option<FrameData> {
-    let mut c = ffmpeg_video(info, pos.max(0.0));
-    // one frame only
-    c.args(["-frames:v", "1"]);
+    let mut c = ffmpeg_video(info, pos.max(0.0), Some(1));
     let out = c.stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
     let size = (info.w * info.h * 4) as usize;
     if out.stdout.len() < size { return None; }

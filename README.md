@@ -10,6 +10,16 @@ A VLC-style video player that makes any video look and sound like it is playing 
 
 ![platform](https://img.shields.io/badge/platform-linux%20x86__64-blue) ![license](https://img.shields.io/badge/license-MIT-green)
 
+## Screenshots
+
+Frames from *Sintel* (© Blender Foundation | [durian.blender.org](https://durian.blender.org), licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)), run through the real picture path with `--render-test`. The images are modified (VHS effect applied).
+
+| Good tape, normal playback | Worn tape, tracking off |
+|---|---|
+| ![good tape](docs/screenshots/playback-good-tape.png) | ![worn tape](docs/screenshots/worn-tape-tracking.png) |
+| **Fast-forward** | **Pause** |
+| ![fast-forward](docs/screenshots/fast-forward.png) | ![pause](docs/screenshots/pause.png) |
+
 ## Download and run (Linux x86_64)
 
 1. Download `vhs-deck-<version>-linux-x86_64.tar.gz` from the **Releases** page.
